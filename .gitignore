@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.log
+instance/*.sqlite3
+instance/*.sqlite3-*
+node_modules/
+desktop-dist/
+.vercel/
+backend/build/
+backend/dist/
+backend/*.spec

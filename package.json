@@ -1,0 +1,47 @@
+{
+  "name": "habix-ai-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "author": "HABIX AI",
+  "description": "Desktop edition of the HABIX AI student planner",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "build:windows": "electron-builder --win dir"
+  },
+  "devDependencies": {
+    "electron": "^44.7.2",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.habixai.desktop",
+    "productName": "HABIX AI",
+    "directories": {
+      "output": "desktop-dist"
+    },
+    "electronDownload": {
+      "cache": "node_modules/.cache/electron"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/dist/habix-backend.exe",
+        "to": "backend/habix-backend.exe"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "HABIX-AI-${version}-Windows.${ext}"
+    }
+  }
+}

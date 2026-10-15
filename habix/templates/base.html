@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en" data-theme="{{ (prefs.theme if prefs is defined and prefs else 'light') }}">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>{% block title %}HABIX AI{% endblock %} · HABIX</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="{% if not g.user %}auth-layout{% endif %}">
+{% if g.user %}
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="{{ url_for('main.dashboard') }}"><span class="brand-mark"><i data-lucide="command"></i></span><span>habix<span class="brand-ai"> AI</span></span></a>
+      <div class="side-label">Workspace</div>
+      <nav class="side-nav" aria-label="Main navigation">
+        <a class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}" href="{{ url_for('main.dashboard') }}"><i data-lucide="layout-dashboard"></i><span>Overview</span></a>
+        <a class="nav-link {% if request.endpoint == 'main.timetable' %}active{% endif %}" href="{{ url_for('main.timetable') }}"><i data-lucide="calendar-days"></i><span>Timetable</span></a>
+        <a class="nav-link {% if request.endpoint in ['main.tasks','main.edit_task'] %}active{% endif %}" href="{{ url_for('main.tasks') }}"><i data-lucide="check-square-2"></i><span>Tasks</span></a>
+        <a class="nav-link {% if request.endpoint == 'main.habits' %}active{% endif %}" href="{{ url_for('main.habits') }}"><i data-lucide="repeat-2"></i><span>Habits</span></a>
+        <a class="nav-link {% if request.endpoint == 'main.study' %}active{% endif %}" href="{{ url_for('main.study') }}"><i data-lucide="timer"></i><span>Focus room</span></a>
+        <a class="nav-link {% if request.endpoint == 'main.exams' %}active{% endif %}" href="{{ url_for('main.exams') }}"><i data-lucide="notebook-tabs"></i><span>Exams & syllabus</span></a>
+      </nav>
+      <div class="side-label side-label-spaced">Insights</div>
+      <nav class="side-nav" aria-label="Insights navigation">
+        <a class="nav-link {% if request.endpoint == 'main.calendar' %}active{% endif %}" href="{{ url_for('main.calendar') }}"><i data-lucide="calendar"></i><span>Calendar</span></a>
+        <a class="nav-link {% if request.endpoint == 'main.analytics' %}active{% endif %}" href="{{ url_for('main.analytics') }}"><i data-lucide="chart-no-axes-column-increasing"></i><span>Progress</span></a>
+        <a class="nav-link {% if request.endpoint == 'main.assistant' %}active{% endif %}" href="{{ url_for('main.assistant') }}"><i data-lucide="sparkles"></i><span>Planner assistant</span><span class="nav-new">RULES</span></a>
+      </nav>
+      <div class="sidebar-bottom">
+        <a class="nav-link {% if request.endpoint == 'main.notifications' %}active{% endif %}" href="{{ url_for('main.notifications') }}"><i data-lucide="bell"></i><span>Notifications</span>{% if unread_count %}<span class="nav-count">{{ unread_count }}</span>{% endif %}</a>
+        <a class="nav-link {% if request.endpoint == 'main.settings' %}active{% endif %}" href="{{ url_for('main.settings') }}"><i data-lucide="settings-2"></i><span>Settings</span></a>
+        <div class="sidebar-profile"><span class="avatar">{{ g.user.name[:1]|upper }}</span><span class="profile-copy"><strong>{{ g.user.name }}</strong><small>{{ g.user.email }}</small></span><form action="{{ url_for('auth.logout') }}" method="post">{{ csrf_field() }}<button class="icon-button" title="Sign out" aria-label="Sign out"><i data-lucide="log-out"></i></button></form></div>
+      </div>
+    </aside>
+    <div class="sidebar-scrim" id="sidebar-scrim"></div>
+    <div class="main-column">
+      <header class="topbar">
+        <button class="icon-button menu-toggle" id="menu-toggle" aria-label="Open menu"><i data-lucide="menu"></i></button>
+        <div class="breadcrumb"><span>HABIX</span><i data-lucide="chevron-right"></i><strong>{% block crumb %}Workspace{% endblock %}</strong></div>
+        <div class="topbar-actions"><span class="date-chip"><i data-lucide="calendar-clock"></i>{{ today|date_label }}</span><a class="icon-button notification-button" href="{{ url_for('main.notifications') }}" title="Notifications" aria-label="Notifications"><i data-lucide="bell"></i>{% if unread_count %}<span class="notification-count">{{ unread_count }}</span>{% endif %}</a><a class="top-avatar" href="{{ url_for('main.settings') }}">{{ g.user.name[:1]|upper }}</a></div>
+      </header>
+      <main class="page-wrap">
+        <div class="flash-stack" aria-live="polite">{% for category, message in get_flashed_messages(with_categories=true) %}<div class="flash flash-{{ category }}"><i data-lucide="{% if category == 'error' %}circle-alert{% elif category == 'warning' %}triangle-alert{% else %}circle-check{% endif %}"></i><span>{{ message }}</span><button class="flash-close" aria-label="Dismiss">×</button></div>{% endfor %}</div>
+        {% block content %}{% endblock %}
+      </main>
+      <footer class="footer"><span>Make room for what matters.</span><span>HABIX AI · Student life, in rhythm.</span></footer>
+    </div>
+  </div>
+{% else %}
+  <div class="auth-brand"><a class="brand" href="{{ url_for('auth.login') }}"><span class="brand-mark"><i data-lucide="command"></i></span><span>habix<span class="brand-ai"> AI</span></span></a></div>
+  <main class="auth-page"><div class="flash-stack">{% for category, message in get_flashed_messages(with_categories=true) %}<div class="flash flash-{{ category }}"><i data-lucide="circle-alert"></i><span>{{ message }}</span></div>{% endfor %}</div>{% block auth_content %}{% endblock %}</main>
+  <div class="auth-decoration decoration-one"></div><div class="auth-decoration decoration-two"></div>
+{% endif %}
+{% block scripts %}{% endblock %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>if(window.lucide){lucide.createIcons()}</script>
+</body>
+</html>

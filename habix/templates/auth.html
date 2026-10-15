@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Create your account' if mode == 'register' else 'Welcome back' }}{% endblock %}
+{% block auth_content %}
+<section class="auth-card">
+  <div class="auth-eyebrow"><span class="eyebrow-line"></span> YOUR STUDENT LIFE, IN RHYTHM</div>
+  <h1>{{ 'A calmer way to get it done.' if mode == 'register' else 'Good to have you back.' }}</h1>
+  <p class="auth-intro">{{ 'One place for your classes, focus time, and everything in between.' if mode == 'register' else 'Your classes, plans, and progress are right where you left them.' }}</p>
+  <form method="post" class="form-stack">{{ csrf_field() }}
+    {% if mode == 'register' %}<label class="field-label">Your name<input name="name" maxlength="80" autocomplete="name" placeholder="Alex Morgan" required value="{{ request.form.get('name','') }}"></label>{% endif %}
+    <label class="field-label">Email address<input name="email" type="email" maxlength="254" autocomplete="email" placeholder="you@college.edu" required value="{{ request.form.get('email','') }}"></label>
+    <label class="field-label">Password<input name="password" type="password" minlength="8" maxlength="128" autocomplete="{{ 'new-password' if mode == 'register' else 'current-password' }}" placeholder="{{ 'At least 8 characters' if mode == 'register' else 'Your password' }}" required></label>
+    <button class="button button-primary button-full" type="submit">{{ 'Create account' if mode == 'register' else 'Sign in' }}<i data-lucide="arrow-right"></i></button>
+  </form>
+  <p class="auth-switch">{{ 'Already have an account?' if mode == 'register' else 'New to HABIX?' }} <a href="{{ url_for('auth.login' if mode == 'register' else 'auth.register') }}">{{ 'Sign in' if mode == 'register' else 'Create an account' }}</a></p>
+  <div class="auth-note"><i data-lucide="shield-check"></i><span>Your account and personal data stay private.</span></div>
+</section>
+<div class="auth-quote"><span class="quote-mark">“</span><p>Small steps, steady days.<br>That's how good things get done.</p><span class="quote-by">A LITTLE REMINDER FROM HABIX</span></div>
+{% endblock %}
