@@ -31,12 +31,13 @@ def register():
             flash(error, "error")
         else:
             db = get_db()
-            cursor = db.execute("INSERT INTO users(name, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
+            cursor = db.execute("INSERT INTO users(name, email, password_hash, created_at) VALUES (?, ?, ?, ?) RETURNING id",
                                 (name, email, generate_password_hash(password), datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")))
-            db.execute("INSERT INTO preferences(user_id) VALUES (?)", (cursor.lastrowid,))
+            user_id = cursor.fetchone()["id"]
+            db.execute("INSERT INTO preferences(user_id) VALUES (?)", (user_id,))
             db.commit()
             session.clear()
-            session["user_id"] = cursor.lastrowid
+            session["user_id"] = user_id
             session.permanent = True
             flash("Your HABIX account is ready.", "success")
             return redirect(url_for("main.dashboard"))

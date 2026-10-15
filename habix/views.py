@@ -451,10 +451,11 @@ def study_control():
             return {"error": "Add a subject and choose 1–600 focus minutes."}, 400
         if active:
             return {"error": "Finish or stop your current session first."}, 409
-        cur = db.execute("INSERT INTO study_sessions(user_id,subject,planned_minutes,state,started_at,session_date,created_at) VALUES (?,?,?,'active',?,?,?)",
+        cur = db.execute("INSERT INTO study_sessions(user_id,subject,planned_minutes,state,started_at,session_date,created_at) VALUES (?,?,?,'active',?,?,?) RETURNING id",
                          (g.user["id"], subject, minutes, _now_utc(), date.today().isoformat(), _now_utc()))
+        session_id = cur.fetchone()["id"]
         db.commit()
-        return {"id": cur.lastrowid, "state": "active", "subject": subject, "planned_minutes": minutes, "elapsed_seconds": 0, "started_at": _now_utc()}
+        return {"id": session_id, "state": "active", "subject": subject, "planned_minutes": minutes, "elapsed_seconds": 0, "started_at": _now_utc()}
     if not active:
         return {"error": "There is no active study session."}, 404
     if action == "pause" and active["state"] == "active":
@@ -590,7 +591,7 @@ def analytics():
     planned_values = {row["session_date"]: row["planned"] for row in rows}
     labels = [(start + timedelta(days=n)) for n in range(days)]
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="seconds").replace("+00:00", "Z")
-    task_stats = db.execute("SELECT COUNT(*) total,SUM(status='Completed') completed FROM tasks WHERE user_id=? AND created_at>=?", (g.user["id"], cutoff)).fetchone()
+    task_stats = db.execute("SELECT COUNT(*) total,SUM(CASE WHEN status='Completed' THEN 1 ELSE 0 END) completed FROM tasks WHERE user_id=? AND created_at>=?", (g.user["id"], cutoff)).fetchone()
     task_total, task_done = task_stats["total"] or 0, task_stats["completed"] or 0
     habits = db.execute("SELECT h.id,h.name,h.frequency,COUNT(c.id) done FROM habits h LEFT JOIN habit_checks c ON c.habit_id=h.id AND c.check_date>=? WHERE h.user_id=? GROUP BY h.id", (start.isoformat(), g.user["id"])).fetchall()
     habit_names, habit_rates = [], []

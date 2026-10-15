@@ -82,13 +82,65 @@ CREATE TABLE IF NOT EXISTS notifications (
 MIGRATIONS = [(1, SCHEMA)]
 
 
+class HybridRow(dict):
+    """PostgreSQL row supporting both SQLite-style numeric and named lookup."""
+
+    def __init__(self, columns, values):
+        super().__init__(zip(columns, values))
+        self._values = values
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self._values[key]
+        return super().__getitem__(key)
+
+
+def _hybrid_row(cursor):
+    if cursor.description is None:
+        return lambda values: values
+    columns = [column.name for column in cursor.description]
+    return lambda values: HybridRow(columns, values)
+
+
+class PostgresConnection:
+    """Small DB-API adapter for the parameter and cursor API used by HABIX."""
+
+    def __init__(self, connection):
+        self.connection = connection
+
+    def execute(self, statement, parameters=()):
+        return self.connection.execute(statement.replace("?", "%s"), parameters)
+
+    def commit(self):
+        self.connection.commit()
+
+    def close(self):
+        self.connection.close()
+
+    def executescript(self, script):
+        for statement in script.split(";"):
+            if statement.strip():
+                self.execute(statement)
+
+
 def get_db():
     if "db" not in g:
-        path = current_app.config["DATABASE"]
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        g.db = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES)
-        g.db.row_factory = sqlite3.Row
-        g.db.execute("PRAGMA foreign_keys = ON")
+        database_url = current_app.config.get("DATABASE_URL")
+        if database_url:
+            from importlib import import_module
+
+            psycopg = import_module("psycopg")
+            url = database_url.replace("postgres://", "postgresql://", 1)
+            connection = psycopg.connect(
+                url, row_factory=_hybrid_row, prepare_threshold=None, connect_timeout=10
+            )
+            g.db = PostgresConnection(connection)
+        else:
+            path = current_app.config["DATABASE"]
+            Path(path).parent.mkdir(parents=True, exist_ok=True)
+            g.db = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES)
+            g.db.row_factory = sqlite3.Row
+            g.db.execute("PRAGMA foreign_keys = ON")
     return g.db
 
 
@@ -104,9 +156,18 @@ def init_db():
     applied = {row[0] for row in db.execute("SELECT version FROM schema_migrations")}
     for version, sql in MIGRATIONS:
         if version not in applied:
-            db.executescript(sql)
+            if isinstance(db, PostgresConnection):
+                postgres_sql = sql.replace("PRAGMA foreign_keys = ON;", "").replace(
+                    "INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY"
+                )
+                db.executescript(postgres_sql)
+            else:
+                db.executescript(sql)
             applied_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-            db.execute("INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)", (version, applied_at))
+            db.execute(
+                "INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?) ON CONFLICT(version) DO NOTHING",
+                (version, applied_at),
+            )
             db.commit()
 
 

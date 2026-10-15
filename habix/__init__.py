@@ -112,7 +112,7 @@ def refresh_notifications(user_id):
     ):
         kind = "task_due"
         db.execute(
-            "INSERT OR IGNORE INTO notifications(user_id, kind, source_id, title, body, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO notifications(user_id, kind, source_id, title, body, created_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(user_id, kind, source_id) DO NOTHING",
             (user_id, kind, row["id"], "Task coming up", f"{row['title']} is due {row['due_date']}.", datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")),
         )
     for row in db.execute(
@@ -120,7 +120,7 @@ def refresh_notifications(user_id):
         (user_id, today.isoformat(), (today + timedelta(days=7)).isoformat()),
     ):
         db.execute(
-            "INSERT OR IGNORE INTO notifications(user_id, kind, source_id, title, body, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO notifications(user_id, kind, source_id, title, body, created_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(user_id, kind, source_id) DO NOTHING",
             (user_id, "exam_soon", row["id"], "Exam approaching", f"{row['name']} is on {row['exam_date']}.", datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")),
         )
     db.commit()

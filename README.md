@@ -72,7 +72,7 @@ For local HTTP, keep `HABIX_COOKIE_SECURE=0`. Set it to `1` when serving behind 
 - Reminders appear in the HABIX notification center only. This version does not send browser push or email notifications.
 - Chart.js, Lucide icons, and the optional Google font are loaded from CDNs. If the device is offline, the app remains usable, but charts/icons/custom fonts may not load.
 - User-entered calendar dates and clock times use the computer's local time. Audit timestamps are stored in UTC. Set the computer's time zone correctly before recording sessions.
-- SQLite is the current storage backend. The schema and data access are kept in a separate module so a PostgreSQL adapter and formal migrations can be added later.
+- Local and Electron installs use SQLite. Vercel uses PostgreSQL through `DATABASE_URL`; sequential schema versions are recorded in `schema_migrations`.
 
 ## Project structure
 
@@ -108,3 +108,16 @@ python -m pytest
 ```
 
 Tests cover account security, private record ownership, timetable overlap/day-order behavior, persisted timer controls, planner record rendering, rule-plan limits, and habit progress calculations.
+
+## Deploy the web app on Vercel
+
+Vercel detects the Flask `app` in `app.py` and uses the Python 3.12 runtime. The Electron desktop edition is not deployed by Vercel.
+
+The desktop and local editions use SQLite. Vercel deployments must use a persistent PostgreSQL database because function storage is temporary. Create a PostgreSQL database with a provider such as Neon, then add these environment variables to the Vercel project for Production, Preview, and Development:
+
+- `DATABASE_URL`: the provider's PostgreSQL connection string. Use its pooled/serverless connection string when available.
+- `HABIX_SECRET_KEY`: generate a persistent secret with `python -c "import secrets; print(secrets.token_hex(32))"` and keep it private.
+
+HABIX creates its schema automatically the first time the app connects. Vercel HTTPS enables secure session cookies automatically. The Vercel runtime fails fast if `DATABASE_URL` or `HABIX_SECRET_KEY` is missing. A newly provisioned database starts empty; this does not copy data from a desktop SQLite database.
+
+After connecting the GitHub repository in Vercel and adding the environment variables, deploy from the project root with `vercel --prod` or use the Vercel dashboard. The `vercel.json` configuration excludes desktop build files and tests from the Python function bundle.
