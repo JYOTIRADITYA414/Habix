@@ -13,3 +13,5 @@
 .dashboard-subheading{margin:4px 0 6px;color:#a1a5b1}.task-date-box{background:#eaf4fc;color:#5487b6}
 
 .welcome-actions{display:flex;align-items:center;gap:7px}.focus-quick-link{padding:0 11px}@media(max-width:680px){.welcome-actions{gap:6px;flex:0 0 auto}.focus-quick-link{width:37px;padding:0}.focus-quick-link span{display:none}}
+
+.assistant-input-form textarea{background:#fff!important;color:#111!important;caret-color:#111!important}
